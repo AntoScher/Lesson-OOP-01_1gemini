@@ -39,8 +39,6 @@ class TaskManager:
         # Запуск проверки срока выполнения задач
         self.check_task_deadline()
 
-    # ... (остальные методы класса TaskManager)
-
     def add_task(self):
         task = self.task_entry.get()
         date_str = self.date_entry.get()
@@ -59,4 +57,65 @@ class TaskManager:
         except ValueError:
             messagebox.showerror("Ошибка", "Введите корректную дату в формате ДД.ММ.ГГГГ ЧЧ:ММ")
 
-    # ... (остальные методы delete_task, edit_task, mark_task, populate_fields_for_edit, check_task_deadline)
+    def delete_task(self):
+        try:
+            selected_index = self.task_listBox.curselection()[0]
+            self.task_listBox.delete(selected_index)
+        except IndexError:
+            messagebox.showwarning("Warning", "Please select a task to delete.")
+
+    def edit_task(self):
+        try:
+            selected_index = self.task_listBox.curselection()[0]
+            task = self.task_entry.get()
+            date_str = self.date_entry.get()
+
+            try:
+                due_date = datetime.strptime(date_str, '%d.%m.%Y %H:%M')
+                self.task_listBox.delete(selected_index)
+                self.task_listBox.insert(selected_index, f"{task} (до: {due_date.strftime('%d.%m.%Y %H:%M')})")
+                self.task_entry.delete(0, tk.END)
+                self.date_entry.delete(0, tk.END)
+            except ValueError:
+                messagebox.showerror("Ошибка", "Введите корректную дату в формате ДД.ММ.ГГГГ ЧЧ:ММ")
+        except IndexError:
+            messagebox.showwarning("Warning", "Please select a task to edit.")
+
+    def mark_task(self):
+        try:
+            selected_index = self.task_listBox.curselection()[0]
+            self.task_listBox.itemconfig(selected_index, {'bg': 'lightgreen'})
+        except IndexError:
+            messagebox.showwarning("Warning", "Please select a task to mark.")
+
+    def populate_fields_for_edit(self):
+        try:
+            selected_index = self.task_listBox.curselection()[0]
+            selected_task = self.task_listBox.get(selected_index)
+            task_text = selected_task.split(" (до: ")[0]
+            date_text = selected_task.split(" (до: ")[1][:-1]  # Remove parentheses
+            self.task_entry.delete(0, tk.END)
+            self.task_entry.insert(0, task_text)
+            self.date_entry.delete(0, tk.END)
+            self.date_entry.insert(0, date_text)
+        except IndexError:
+            messagebox.showwarning("Warning", "Please select a task to edit.")
+
+    def check_task_deadline(self):
+        for i in range(self.task_listBox.size()):
+            task_text = self.task_listBox.get(i)
+            try:
+                due_date_str = task_text.split(" (до: ")[1][:-1]
+                due_date = datetime.strptime(due_date_str, '%d.%m.%Y %H:%M')
+                if due_date < datetime.now():
+                    self.task_listBox.itemconfig(i, {'bg': 'salmon'})
+                else:
+                    self.task_listBox.itemconfig(i, {'bg': 'LightPink1'})
+            except IndexError:
+                pass  # Skip tasks without a due date
+        self.master.after(60000, self.check_task_deadline)  # Check every minute
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = TaskManager(root)
+    root.mainloop()
